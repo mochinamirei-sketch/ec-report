@@ -7,13 +7,13 @@ const GAS_URL = 'https://script.google.com/a/macros/8sigotonin.com/s/AKfycbybMc9
 
 // ── 定数 ──────────────────────────────────────────────
 const STORES = {
-     '本店': 'ハチカッテ 八ヶ岳のセレクトショップ',
+     '本店': 'ハチカッテ 八ヶ岳のセレクトショップ',h
      '楽天': 'ハチカッテ 楽天市場店',
      'Yahoo': 'ハチカッテ ヤフー店',
      'Amazon': 'ハチカッテ'
 };
 const INHERIT_STATUSES = [
-     '★振分待ち','★入荷待ち','★リゾから発送/移動',
+     '★振分待ち','★入荷待ち','★リゾから発送/移動',h
      '★生産者発送待ち','★入金待ち','★店頭受取希望','★予約日付別発送残'
    ];
 
@@ -329,7 +329,7 @@ function buildUI(date, sales, memoList, shippingInfo, chatworkBody, notionBody, 
          statusDiv.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#2c3e50;color:#fff;padding:10px 16px;border-radius:6px;z-index:1000000;';
          statusDiv.textContent = '送信中...';
          document.body.appendChild(statusDiv);
-         fetch(GAS_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+         fetch(GAS_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)})
            .then(()=>{
                       statusDiv.textContent = '✅ 送信完了（応答はGASログで確認）';
                       setTimeout(()=>statusDiv.remove(),3000);
