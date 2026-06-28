@@ -329,7 +329,7 @@ function buildUI(date, sales, memoList, shippingInfo, chatworkBody, notionBody, 
          statusDiv.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#2c3e50;color:#fff;padding:10px 16px;border-radius:6px;z-index:1000000;';
          statusDiv.textContent = '送信中...';
          document.body.appendChild(statusDiv);
-         fetch(GAS_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)})
+         fetch(GAS_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'payload='+encodeURIComponent(JSON.stringify(payload))})
            .then(()=>{
                       statusDiv.textContent = '✅ 送信完了（応答はGASログで確認）';
                       setTimeout(()=>statusDiv.remove(),3000);
