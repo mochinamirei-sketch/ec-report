@@ -7,7 +7,7 @@
 (function(){
 "use strict";
 
-const GAS_URL = 'https://script.google.com/a/macros/8sigotonin.com/s/AKfycbybMc9I7U_Ddv0b0zaJNYR4IBVxRyfRpYiTD0E93DIpnei9OGEjTC_PxkzNw000Ahn78A/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbybMc9I7U_Ddv0b0zaJNYR4IBVxRyfRpYiTD0E93DIpnei9OGEjTC_PxkzNw000Ahn78A/exec';
 
 // ── 定数 ──────────────────────────────────────────────
 const STORES = {
