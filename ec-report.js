@@ -180,19 +180,20 @@ function parseInherited(text, currentOrders){
      if(!text) return {statuses:{}};
      const statuses = {};
      let currentStatus = null;
-     let inShipping = false;
      for(const line of text.split('\n')){
             const t = line.trim();
             if(!t) continue;
-            // 「---発送残の部---」以降だけを引き継ぎ対象にする（上部の商品内容・固定テンプレは無視）
-            if(t === '---発送残の部---'){ inShipping = true; continue; }
-            if(!inShipping) continue;
-            const headMatch = t.match(/^##\s+(.+)$/);
+            if(t === '---発送残の部---') continue; // 新形式の区切り行はスキップ
+            // カテゴリ見出し判定：「## 予約」「★予約」どちらの形式でも、
+            // 先頭の「## 」または「★」を外した名前が既定カテゴリなら見出しとみなす。
+            // （商品名が「★複数注意…」で始まっても、外した残りはカテゴリ名と一致しないので誤判定しない）
+            const catName = t.replace(/^##\s+/,'').replace(/^★/,'').trim();
+            const isCat = (t.startsWith('##') || t.startsWith('★')) && SHIP_CATEGORIES.includes(catName);
             const dateMatchFull = t.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
             const dateMatchShort = t.match(/^(\d{1,2})\/(\d{1,2})$/);
-            if(headMatch && SHIP_CATEGORIES.includes(headMatch[1].trim())){
-                     currentStatus = headMatch[1].trim();
-                     if(!statuses[currentStatus]) statuses[currentStatus]=[];
+            if(isCat){
+                     currentStatus = catName;
+                     if(!statuses[catName]) statuses[catName]=[];
                      continue;
             }
             if(dateMatchFull){
