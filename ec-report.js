@@ -110,9 +110,9 @@ function calcSales(orders){
 
 // ── メモ一覧生成 ─────────────────────────────────────
 function buildMemoList(orders){
+     // 空メモは除外・重複はまとめない・従来どおりソート（同じメモは隣接）
      const memos = orders.filter(o=>o.memo).map(o=>o.memo);
-     const unique = [...new Set(memos)];
-     return unique.sort((a,b)=>memoSortKey(a).localeCompare(memoSortKey(b),'ja',{numeric:true}));
+     return memos.sort((a,b)=>memoSortKey(a).localeCompare(memoSortKey(b),'ja',{numeric:true}));
 }
 
 // ── 発送残振り分け ───────────────────────────────────
