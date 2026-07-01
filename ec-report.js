@@ -16,10 +16,41 @@ const STORES = {
      'Yahoo': 'ハチカッテ ヤフー店',
      'Amazon': 'ハチカッテ'
 };
-const INHERIT_STATUSES = [
-     '★振分待ち','★入荷待ち','★リゾから発送/移動',
-     '★生産者発送待ち','★入金待ち','★店頭受取希望','★予約日付別発送残'
-   ];
+const SHIP_CATEGORIES = ['振分待ち','入荷待ち','リゾから発送/移動','生産者発送待ち','入金待ち','店頭受取希望','予約'];
+
+/* 固定テンプレ（月別売上実績＋各種URL）：内容を更新するときはこの定数だけ編集すればよい */
+const FIXED_TEMPLATE = `2020年度
+・6月の発送済み売上実績：370 153
+・7月の発送済み売上実績：5 037 976
+・8月の発送済み売上実績：7 675 632
+・9月の発送済み売上実績：1 257 679
+・10月の発送済み売上実績：251 869(20%/50 374)
+・11月の発送済み売上実績：306 675(20%/61 335)
+・12月の発送済み売上実績：647 884(20%/129 577)
+・1月の発送済み：302 370(20%/60 474)
+・2月の発送済み：291 218a(20%/58 244)
+・3月の発送済み：338 502(20%/67 700)
+・4月の発送済み：370 948(20%/74 190)
+・5月の発送済み：384 404(20%/76 881)
+・6月の発送済み：502 604(20%/100 521)
+
+2025年売上実績
+https://docs.google.com/spreadsheets/d/1gayjtM3Hv4HbcWaVAaMsvJCFUGnd8Lz-Gb49iuW3Mgk/edit?gid=819586888#gid=819586888
+
+2026年もろこし予約管理
+https://docs.google.com/spreadsheets/d/1sGQAY4FApAvHNI6pKmuyLeT-yBqTso5CCr5FL5aAz_E/edit?usp=sharing
+
+2024年売上実績
+https://docs.google.com/spreadsheets/d/1gayjtM3Hv4HbcWaVAaMsvJCFUGnd8Lz-Gb49iuW3Mgk/edit?gid=1550105178#gid=1550105178
+
+2023年売上実績
+https://docs.google.com/spreadsheets/d/1gayjtM3Hv4HbcWaVAaMsvJCFUGnd8Lz-Gb49iuW3Mgk/edit#gid=982607527
+
+2022年度売上＆利益
+https://docs.google.com/spreadsheets/d/1gayjtM3Hv4HbcWaVAaMsvJCFUGnd8Lz-Gb49iuW3Mgk/edit#gid=0
+
+2023年売上目標＆実績＆各種マネージメントデータ
+https://docs.google.com/spreadsheets/d/1gayjtM3Hv4HbcWaVAaMsvJCFUGnd8Lz-Gb49iuW3Mgk/edit?usp=sharing`;
 
 // ── 日付ユーティリティ ──────────────────────────────
 function getYesterday(){
@@ -130,9 +161,9 @@ function buildShipping(orders, prevText){
      }
      const inherited = parseInherited(prevText, orders);
      for(const [status, items] of Object.entries(inherited.statuses)){
-            if(status === '★振分待ち'){
+            if(status === '振分待ち'){
                      for(const item of items) if(!unassigned.includes(item)) unassigned.push(item);
-            } else if(status.match(/^\d{4}\/\d{2}\/\d{2}$/)){
+            } else if(status.match(/^\d{4}\/\d{1,2}\/\d{1,2}$/)){
                      if(!byDate[status]) byDate[status]=[];
                      for(const item of items) if(!byDate[status].includes(item)) byDate[status].push(item);
             } else {
@@ -149,29 +180,31 @@ function parseInherited(text, currentOrders){
      if(!text) return {statuses:{}};
      const statuses = {};
      let currentStatus = null;
+     let inShipping = false;
      for(const line of text.split('\n')){
             const t = line.trim();
             if(!t) continue;
-            const isStatus = INHERIT_STATUSES.includes(t);
-            const dateMatchFull = t.match(/^(\d{4})\/(\d{2})\/(\d{2})$/);
+            // 「---発送残の部---」以降だけを引き継ぎ対象にする（上部の商品内容・固定テンプレは無視）
+            if(t === '---発送残の部---'){ inShipping = true; continue; }
+            if(!inShipping) continue;
+            const headMatch = t.match(/^##\s+(.+)$/);
+            const dateMatchFull = t.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
             const dateMatchShort = t.match(/^(\d{1,2})\/(\d{1,2})$/);
-            if(isStatus){
-                     currentStatus = t;
-                     if(!statuses[t]) statuses[t]=[];
+            if(headMatch && SHIP_CATEGORIES.includes(headMatch[1].trim())){
+                     currentStatus = headMatch[1].trim();
+                     if(!statuses[currentStatus]) statuses[currentStatus]=[];
                      continue;
             }
             if(dateMatchFull){
-                     currentStatus = t;
-                     if(!statuses[t]) statuses[t]=[];
+                     const key = fmtDate(new Date(+dateMatchFull[1], +dateMatchFull[2]-1, +dateMatchFull[3]));
+                     currentStatus = key;
+                     if(!statuses[key]) statuses[key]=[];
                      continue;
             }
             if(dateMatchShort){
-                     const y = new Date().getFullYear();
-                     const mm = String(parseInt(dateMatchShort[1])).padStart(2,'0');
-                     const dd = String(parseInt(dateMatchShort[2])).padStart(2,'0');
-                     const normalDate = y+'/'+mm+'/'+dd;
-                     currentStatus = normalDate;
-                     if(!statuses[normalDate]) statuses[normalDate]=[];
+                     const key = fmtDate(new Date(new Date().getFullYear(), +dateMatchShort[1]-1, +dateMatchShort[2]));
+                     currentStatus = key;
+                     if(!statuses[key]) statuses[key]=[];
                      continue;
             }
             if(currentStatus !== null){
@@ -188,43 +221,52 @@ function parseInherited(text, currentOrders){
 function buildChatworkBody(date, sales, memoList, shippingInfo){
      const yd = fmtDateShort(date);
      const total = Object.values(sales).reduce((a,b)=>a+b,0);
-     const lines = [];
-     lines.push('[toall]');
-     lines.push('');
-     lines.push('■ EC日次売上報告 '+yd);
-     lines.push('');
-     lines.push('【売上合計】 '+total.toLocaleString()+'円');
-     lines.push('本店：'+sales['本店'].toLocaleString()+'円');
-     lines.push('楽天：'+sales['楽天'].toLocaleString()+'円');
-     lines.push('Yahoo：'+sales['Yahoo'].toLocaleString()+'円');
-     lines.push('Amazon：'+sales['Amazon'].toLocaleString()+'円');
-     lines.push('');
-     lines.push('【注文件数】 '+memoList.length+'件');
-     lines.push('');
-     lines.push('【商品内容】');
-     for(const m of memoList) lines.push('・'+m);
-     lines.push('');
-     lines.push('【発送残】');
+     const L = [];
+     L.push('[toall]');
+     L.push('■ EC日次売上報告 '+yd);
+     L.push('');
+     L.push('【売上合計】 '+total.toLocaleString()+'円');
+     L.push('本店：'+sales['本店'].toLocaleString()+'円');
+     L.push('楽天：'+sales['楽天'].toLocaleString()+'円');
+     L.push('Yahoo：'+sales['Yahoo'].toLocaleString()+'円');
+     L.push('Amazon：'+sales['Amazon'].toLocaleString()+'円');
+     L.push('');
+     L.push('【注文件数】 '+memoList.length+'件');
+     L.push('');
+     L.push('【注文商品内容】');
+     for(const m of memoList) L.push(m);
+     L.push('');
+     L.push(FIXED_TEMPLATE);
+     L.push('');
+     L.push('---発送残の部---');
+     L.push('');
      const {byDate, unassigned, extra} = shippingInfo;
-     if(unassigned.length>0){
-            lines.push('★振分待ち');
-            for(const m of unassigned) lines.push('・'+m);
+     const catItems = {
+            '振分待ち': unassigned,
+            '入荷待ち': extra['入荷待ち'] || [],
+            'リゾから発送/移動': extra['リゾから発送/移動'] || [],
+            '生産者発送待ち': extra['生産者発送待ち'] || [],
+            '入金待ち': extra['入金待ち'] || [],
+            '店頭受取希望': extra['店頭受取希望'] || [],
+            '予約': extra['予約'] || []
+     };
+     for(const cat of SHIP_CATEGORIES){
+            L.push('## '+cat);
+            for(const m of (catItems[cat] || [])) L.push(m);
+            L.push('');
      }
      const sortedDates = Object.keys(byDate).sort();
      for(const d of sortedDates){
-            lines.push(d);
-            for(const m of byDate[d]) lines.push('・'+m);
+            L.push(d);
+            for(const m of byDate[d]) L.push(m);
+            L.push('');
      }
-     for(const [status, items] of Object.entries(extra)){
-            lines.push(status);
-            for(const m of items) lines.push('・'+m);
-     }
-     return lines.join('\n');
+     return L.join('\n').replace(/\n+$/,'');
 }
 
 // ── Notion本文生成 ───────────────────────────────────
 function buildNotionBody(date, sales, memoList, shippingInfo){
-     return buildChatworkBody(date, sales, memoList, shippingInfo).replace('[toall]\n\n','');
+     return buildChatworkBody(date, sales, memoList, shippingInfo).replace(/^\[toall\]\n/,'');
 }
 
 // ── UI構築 ──────────────────────────────────────────
