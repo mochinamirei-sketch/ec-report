@@ -3,6 +3,10 @@
    仕様書 2026/05/31 準拠
    ===================================================== */
 
+/* 多重読み込み対策: 全体をIIFEで包み、GAS_URL等をグローバルに漏らさない */
+(function(){
+"use strict";
+
 const GAS_URL = 'https://script.google.com/a/macros/8sigotonin.com/s/AKfycbybMc9I7U_Ddv0b0zaJNYR4IBVxRyfRpYiTD0E93DIpnei9OGEjTC_PxkzNw000Ahn78A/exec';
 
 // ── 定数 ──────────────────────────────────────────────
@@ -387,4 +391,6 @@ function buildPrevReportHTML(){
      const chatworkBody = buildChatworkBody(date, sales, memoList, shippingInfo);
      const notionBody = buildNotionBody(date, sales, memoList, shippingInfo);
      buildUI(date, sales, memoList, shippingInfo, chatworkBody, notionBody, currentOrders);
+})();
+
 })();
