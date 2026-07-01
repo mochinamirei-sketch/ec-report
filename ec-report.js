@@ -7,7 +7,7 @@
 (function(){
 "use strict";
 
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbybMc9I7U_Ddv0b0zaJNYR4IBVxRyfRpYiTD0E93DIpnei9OGEjTC_PxkzNw000Ahn78A/exec';
+const GAS_URL = 'https://script.google.com/a/macros/8sigotonin.com/s/AKfycbybMc9I7U_Ddv0b0zaJNYR4IBVxRyfRpYiTD0E93DIpnei9OGEjTC_PxkzNw000Ahn78A/exec';
 
 // ── 定数 ──────────────────────────────────────────────
 const STORES = {
@@ -130,6 +130,71 @@ function parseOrders(){
        });
      }
      return orders;
+}
+
+// ── 発送実績: 「請求金額」列を合計 ──────────────────────
+function sumBillingAmount(){
+     const table = document.getElementById('data');
+     if(!table) return null;
+     const rows = Array.from(table.querySelectorAll('tr'));
+     // ヘッダー行から「請求金額」を含む列の位置を特定
+     let billIdx = -1;
+     for(const r of rows){
+            const cells = Array.from(r.cells);
+            for(let i=0;i<cells.length;i++){
+                     if(cells[i].textContent.trim().indexOf('請求金額') >= 0){ billIdx = i; break; }
+            }
+            if(billIdx >= 0) break;
+     }
+     if(billIdx < 0) return null; // 「請求金額」列が見つからない
+     // 注文行（47セル）のその列を合計（カンマ等は除去、数字とマイナスのみ）
+     const orderRows = rows.filter(r=>r.cells.length===47);
+     let total = 0, count = 0;
+     for(const r of orderRows){
+            const raw = (r.cells[billIdx]?.textContent || '').replace(/[^0-9\-]/g,'');
+            if(raw === '' || raw === '-') continue;
+            total += parseInt(raw,10) || 0;
+            count++;
+     }
+     return { total: total, count: count, columnIndex: billIdx };
+}
+
+// ── 発送実績を当日の行へ送信 ──────────────────────────
+function sendShipping(){
+     const billing = sumBillingAmount();
+     if(billing === null){
+            alert('「請求金額」列が見つかりませんでした。\nRobot-inの受注一覧画面で実行してください。');
+            return;
+     }
+     const today = new Date();
+     const ok = confirm(
+            '発送実績を送信します。\n\n'+
+            '対象日：'+fmtDateShort(today)+'（当日）\n'+
+            '請求金額合計：'+billing.total.toLocaleString()+'円\n'+
+            '対象件数：'+billing.count+'件\n\n'+
+            'この金額を'+fmtDateShort(today)+'の発送B（Q列）に書き込みます。よろしいですか？'
+     );
+     if(!ok) return;
+     const payload = {
+            type: 'shipping',
+            date: fmtDateNotion(today),
+            dateDisplay: fmtDate(today),
+            shippingAmount: billing.total
+     };
+     const statusDiv = document.createElement('div');
+     statusDiv.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#2c3e50;color:#fff;padding:10px 16px;border-radius:6px;z-index:1000000;';
+     statusDiv.textContent = '発送実績を送信中...';
+     document.body.appendChild(statusDiv);
+     fetch(GAS_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'payload='+encodeURIComponent(JSON.stringify(payload))})
+       .then(()=>{
+              statusDiv.textContent = '✅ 発送実績を送信（応答はGASログで確認）';
+              setTimeout(()=>statusDiv.remove(),3000);
+       })
+       .catch(e=>{
+              statusDiv.style.background = '#c0392b';
+              statusDiv.textContent = '❌ 送信エラー: '+e.message;
+              setTimeout(()=>statusDiv.remove(),5000);
+       });
 }
 
 // ── 売上集計 ────────────────────────────────────────
@@ -321,10 +386,15 @@ function buildUI(date, sales, memoList, shippingInfo, chatworkBody, notionBody, 
      btnAll.textContent = '🚀 まとめて送信';
      btnAll.style.cssText = btnStyle+'background:#2980b9;color:#fff;font-weight:bold;';
      btnAll.onclick = ()=>send('all');
+     const btnShip = document.createElement('button');
+     btnShip.textContent = '🚚 発送実績を送信';
+     btnShip.style.cssText = btnStyle+'background:#16a085;color:#fff;';
+     btnShip.onclick = ()=>sendShipping();
      footer.appendChild(btnSS);
      footer.appendChild(btnCW);
      footer.appendChild(btnNT);
      footer.appendChild(btnAll);
+     footer.appendChild(btnShip);
      panel.appendChild(footer);
      document.body.appendChild(panel);
 
